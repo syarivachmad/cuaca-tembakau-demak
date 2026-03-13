@@ -33,7 +33,20 @@
   .location-bar{background:var(--parchment);border-bottom:1px solid rgba(122,92,58,.18);padding:10px 14px;display:flex;align-items:center;gap:7px;position:sticky;top:0;z-index:9;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .location-bar::-webkit-scrollbar{display:none}
   .loc-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--tobacco);white-space:nowrap;flex-shrink:0}
-  .kecamatan-btn{padding:6px 13px;border-radius:20px;border:1.5px solid var(--tobacco);background:transparent;color:var(--tobacco);font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+  /* search box lokasi */
+  .search-wrap{position:relative;flex:1;max-width:260px;min-width:140px}
+  .loc-search{width:100%;padding:6px 12px;border-radius:20px;border:1.5px solid var(--tobacco);background:rgba(255,255,255,.85);color:var(--tobacco-dark);font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  .loc-search:focus{border-color:var(--leaf);background:#fff}
+  .loc-search::placeholder{color:rgba(90,62,27,.4)}
+  .search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:1px solid rgba(122,92,58,.12);z-index:200;max-height:240px;overflow-y:auto;display:none}
+  .search-results.open{display:block}
+  .search-result-item{padding:10px 14px;font-size:13px;color:var(--tobacco-dark);cursor:pointer;border-bottom:1px solid rgba(122,92,58,.06);line-height:1.4}
+  .search-result-item:last-child{border-bottom:none}
+  .search-result-item:hover,.search-result-item:active{background:rgba(74,124,63,.08)}
+  .search-result-name{font-weight:600}
+  .search-result-sub{font-size:11px;color:#aaa;margin-top:1px}
+  .search-loading{padding:12px 14px;font-size:12px;color:#aaa;text-align:center}
+  .search-empty{padding:12px 14px;font-size:12px;color:#aaa;text-align:center}
   .kecamatan-btn.active,.kecamatan-btn:hover{background:var(--tobacco);color:var(--cream)}
   .refresh-btn{margin-left:auto;padding:6px 13px;border-radius:20px;border:1.5px solid var(--leaf);background:transparent;color:var(--leaf);font-family:'IBM Plex Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent}
   .refresh-btn:hover{background:var(--leaf);color:white}
@@ -505,10 +518,12 @@
 <div class="location-bar">
   <button class="gps-btn" onclick="useGPS()" id="gps-btn">📍 Lokasi Saya</button>
   <span class="gps-status" id="gps-status"></span>
-  <span class="loc-label" style="margin-left:4px">atau pilih:</span>
-  <button class="kecamatan-btn active" onclick="setLocation('Karangawen')">Karangawen</button>
-  <button class="kecamatan-btn" onclick="setLocation('Mranggen')">Mranggen</button>
-  <button class="kecamatan-btn" onclick="setLocation('Guntur')">Guntur</button>
+  <span class="loc-label">ATAU PILIH:</span>
+  <div class="search-wrap" id="search-wrap">
+    <input class="loc-search" id="loc-search" type="text" placeholder="Cari desa / kecamatan..."
+      oninput="onSearchInput(this.value)" onblur="hideSearchResults()" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="search-results" id="search-results"></div>
+  </div>
 </div>
 
 <main>
@@ -567,10 +582,9 @@
 
     <!-- POLA HUJAN BULANAN -->
     <div class="card">
-      <div class="card-label">🌧 Pola Hujan & Kalender Kerja <span style="font-weight:400;font-size:10px;opacity:.6">· data historis Kab. Demak</span></div>
+      <div class="card-label">🌧 Pola Hujan & Kalender Kerja <span style="font-weight:400;font-size:10px;opacity:.6">· rerata 2001–2022, sumber: UNS × Dinas Pertanian Demak</span></div>
       <div id="monthly-grid"></div>
-      <!-- Panel detail fase — muncul saat bulan diklik -->
-      <div id="fase-detail-panel" style="display:none;margin-top:4px"></div>
+      <!-- Panel fase disisipkan secara dinamis setelah baris bulan yang diklik -->
     </div>
 
     <!-- JARAK TANAM -->
@@ -716,7 +730,7 @@
 
 <footer>
   Cuaca: Open-Meteo (ECMWF best_match) · Nama lokasi: OpenStreetMap Nominatim<br>
-  Data curah hujan: Sta. Klimatologi Dangi &amp; Jragung, Kab. Demak — PUSDATARU Jateng (rerata 2011–2015)<br>
+  Data curah hujan: Rekap CH Bulanan 2001–2022, Kec. Guntur/Mranggen/Karangawen — Laporan Kajian Tembakau UNS × Dinas Pertanian Demak (2023)<br>
   © Dinas Pertanian dan Pangan Kabupaten Demak
 </footer>
 
@@ -849,7 +863,7 @@ const AGRO_PHASES=[
     name:'💰 Penjualan Hasil Panen',
     period:'Agustus – Oktober',
     months:[8,9,10],
-    desc:'Tembakau kering digrading sesuai mutu lalu dijual ke pengepul, pasar lelang, atau pabrikan setempat.',
+    desc:'Tembakau kering digrading sesuai mutu lalu dijual ke pengepul, pasar lelang, atau pabrikan setempat. Perhatikan: hujan mulai meningkat Sep–Okt, percepat penjualan.',
     tips:[
       {icon:'⚖️',title:'Grading mutu sebelum jual',detail:'Pisahkan berdasar posisi daun (krosok/tengah/atas), warna, dan kadar air'},
       {icon:'🏚',title:'Simpan sementara di gudang kering',detail:'Ventilasi baik, jauh dari sumber air. Tembakau lembab rawan jamur & turun harga'},
@@ -859,19 +873,21 @@ const AGRO_PHASES=[
 ];
 
 const MONTHLY_RAIN={
-  // Sumber: Sta. Klimatologi Dangi & Jragung, Kab. Demak — PUSDATARU Jateng (rerata 2011–2015)
-  1:{rain:335,label:'Jan',rec:'🌧 Musim hujan — istirahat lahan'},
-  2:{rain:250,label:'Feb',rec:'🌧 Hujan — rembug tani & rencanakan tanam'},
-  3:{rain:222,label:'Mar',rec:'📋 Persiapan: konsultasi PPL & siapkan saprodi'},
-  4:{rain:228,label:'Apr',rec:'🏗️ Olah lahan, bedengan & sebar benih'},
+  // Sumber: Rekap CH Bulanan 2001–2022, Kec. Guntur/Mranggen/Karangawen
+  // Laporan Kajian Tembakau Kab. Demak, UNS × Dinas Pertanian Demak, 2023
+  // (Gambar 19, 21, 23 — rerata 22 tahun)
+  1:{rain:350,label:'Jan',rec:'🌧 Musim hujan — istirahat lahan'},
+  2:{rain:360,label:'Feb',rec:'🌧 Hujan puncak — rembug tani & rencanakan tanam'},
+  3:{rain:190,label:'Mar',rec:'📋 Persiapan: konsultasi PPL & siapkan saprodi'},
+  4:{rain:175,label:'Apr',rec:'🏗️ Olah lahan, bedengan & sebar benih'},
   5:{rain:120,label:'Mei',rec:'🪴 Cabut bibit & pindah tanam'},
-  6:{rain:92, label:'Jun',rec:'⚗️ Pemupukan I & Dangir I · awal topping'},
-  7:{rain:51, label:'Jul',rec:'🌿 Pemupukan II, Dangir II & Topping — mulai petik bawah'},
+  6:{rain:85, label:'Jun',rec:'⚗️ Pemupukan I & Dangir I · awal topping'},
+  7:{rain:45, label:'Jul',rec:'🌿 Pemupukan II, Dangir II & Topping — mulai petik bawah'},
   8:{rain:30, label:'Agu',rec:'🍂 Panen & rajang utama'},
-  9:{rain:8,  label:'Sep',rec:'💰 Panen akhir & jual ke pengepul'},
-  10:{rain:57, label:'Okt',rec:'⚠️ Hujan mulai — selesaikan penjualan!'},
-  11:{rain:209,label:'Nov',rec:'🌧 Musim hujan — siapkan lahan'},
-  12:{rain:256,label:'Des',rec:'🌧 Hujan penuh — istirahat lahan'},
+  9:{rain:70, label:'Sep',rec:'⚠️ Hujan mulai naik — selesaikan panen & penjualan'},
+  10:{rain:115,label:'Okt',rec:'🌧 Hujan meningkat — selesaikan penjualan!'},
+  11:{rain:200,label:'Nov',rec:'🌧 Musim hujan — siapkan lahan'},
+  12:{rain:268,label:'Des',rec:'🌧 Hujan penuh — istirahat lahan'},
 };
 
 // ================================================================
@@ -928,7 +944,7 @@ function renderBMKGBadge(d, adm3){
   badge.innerHTML=`<span style="font-weight:600">📡 BMKG:</span> Prakiraan ${['Pagi','Siang','Malam','Dini Hari'][periodeIdx]} — ${desc}${t?' ('+t+'°C)':''}`;
 }
 
-async function fetchWeather(lat, lon){
+async async function fetchWeather(lat, lon){
   const btn=document.getElementById('refresh-btn');
   let coords;
   if(lat!==undefined && lon!==undefined){
@@ -1531,19 +1547,28 @@ function renderMonthlyGrid(currentMonth, maxRain){
 }
 
 function toggleFaseDetail(m){
+  // Hapus panel lama yang mungkin sudah ada
+  const oldPanel = document.getElementById('fase-detail-panel');
+  if(oldPanel) oldPanel.remove();
+
   if(_selectedFaseMonth === m){
-    // Tutup
+    // Klik bulan yang sama → tutup
     _selectedFaseMonth = null;
-    const panel = document.getElementById('fase-detail-panel');
-    if(panel){ panel.style.display='none'; panel.innerHTML=''; }
     document.querySelectorAll('.month-row').forEach(el=>el.classList.remove('selected'));
-  } else {
-    _selectedFaseMonth = m;
-    document.querySelectorAll('.month-row').forEach(el=>el.classList.remove('selected'));
-    const row = document.getElementById('mrow-'+m);
-    if(row) row.classList.add('selected');
-    renderFasePanel(m);
+    return;
   }
+
+  _selectedFaseMonth = m;
+  document.querySelectorAll('.month-row').forEach(el=>el.classList.remove('selected'));
+  const row = document.getElementById('mrow-'+m);
+  if(row) row.classList.add('selected');
+
+  // Buat panel baru dan sisipkan LANGSUNG setelah baris bulan
+  const panel = document.createElement('div');
+  panel.id = 'fase-detail-panel';
+  panel.style.marginBottom = '4px';
+  row.insertAdjacentElement('afterend', panel);
+  renderFasePanel(m);
 }
 
 function renderFasePanel(m){
@@ -1578,9 +1603,8 @@ function renderFasePanel(m){
       ${rows}
     </div>`;
   }
-  panel.style.display='block';
   // Scroll supaya panel terlihat
-  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}), 100);
+  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}), 80);
 }
 
 function showError(msg){
@@ -1595,13 +1619,89 @@ function showError(msg){
 function setLocation(name){
   currentLocation=name;
   usingGPS=false;
-  document.querySelectorAll('.kecamatan-btn').forEach(b=>b.classList.toggle('active',b.textContent===name));
   const gpsBtn=document.getElementById('gps-btn');
   gpsBtn.classList.remove('locating');
   gpsBtn.textContent='📍 Lokasi Saya';
   setGPSStatus('');
-  document.getElementById('loc-name').textContent=name+', Demak';
+  document.getElementById('loc-name').textContent=name;
   fetchWeather();
+}
+
+// ── Pencarian lokasi via Nominatim OpenStreetMap ─────────────────────────
+let _searchTimer = null;
+let _searchCoords = null; // {lat, lon, name} dari hasil pilihan
+
+function onSearchInput(val){
+  clearTimeout(_searchTimer);
+  const box = document.getElementById('search-results');
+  if(!val || val.length < 2){
+    box.classList.remove('open');
+    box.innerHTML = '';
+    return;
+  }
+  box.classList.add('open');
+  box.innerHTML = '<div class="search-loading">🔍 Mencari...</div>';
+  _searchTimer = setTimeout(()=>doSearch(val), 400);
+}
+
+async function doSearch(query){
+  const box = document.getElementById('search-results');
+  try{
+    // Batasi ke Jawa Tengah: viewbox koordinat bbox Jateng
+    // countrycodes=id + bounded=1 + viewbox Jateng
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', Jawa Tengah')}&format=json&limit=6&countrycodes=id&viewbox=108.0,-8.2,111.5,-6.5&bounded=1&addressdetails=1&accept-language=id`;
+    const res = await fetch(url, {headers:{'Accept-Language':'id'}});
+    const data = await res.json();
+
+    if(!data || data.length===0){
+      box.innerHTML='<div class="search-empty">Tidak ditemukan di Jawa Tengah</div>';
+      return;
+    }
+
+    box.innerHTML = data.map((d,i)=>{
+      // Susun nama yang ringkas
+      const addr = d.address||{};
+      const desa    = addr.village||addr.hamlet||addr.suburb||'';
+      const kec     = addr.town||addr.city_district||addr.municipality||'';
+      const kab     = addr.county||addr.city||'';
+      const nameLine = desa || kec || d.display_name.split(',')[0];
+      const subLine  = [kec,kab].filter(Boolean).join(', ') || d.display_name.split(',').slice(1,3).join(',').trim();
+      return `<div class="search-result-item" onmousedown="pilihLokasi(${d.lat},${d.lon},'${(nameLine+' '+subLine).replace(/'/g,"\'")}','${nameLine.replace(/'/g,"\'")}')">
+        <div class="search-result-name">${nameLine}</div>
+        <div class="search-result-sub">${subLine}</div>
+      </div>`;
+    }).join('');
+  } catch(e){
+    box.innerHTML='<div class="search-empty">Gagal mencari. Cek koneksi.</div>';
+  }
+}
+
+function pilihLokasi(lat, lon, fullName, shortName){
+  // Set state
+  currentLocation = shortName;
+  usingGPS = false;
+  _searchCoords = {lat:parseFloat(lat), lon:parseFloat(lon)};
+
+  // Update UI
+  const input = document.getElementById('loc-search');
+  if(input) input.value = shortName;
+  hideSearchResults();
+
+  const gpsBtn = document.getElementById('gps-btn');
+  gpsBtn.classList.remove('locating');
+  gpsBtn.textContent = '📍 Lokasi Saya';
+  setGPSStatus('');
+  document.getElementById('loc-name').textContent = shortName;
+
+  // Fetch cuaca dengan koordinat yang dipilih
+  fetchWeather(parseFloat(lat), parseFloat(lon));
+}
+
+function hideSearchResults(){
+  setTimeout(()=>{
+    const box = document.getElementById('search-results');
+    if(box){ box.classList.remove('open'); }
+  }, 200);
 }
 
 function showHourlyModal(dayIndex){
@@ -1737,7 +1837,7 @@ function useGPS(){
       // Reverse-geocode display name using Open-Meteo geocoding isn't available,
       // so we show coordinates briefly then just use them for weather
       document.getElementById('loc-name').textContent='Mendeteksi nama lokasi...';
-      document.getElementById('update-time').textContent='Memuat cuaca dari GPS...';
+      const si=document.getElementById('loc-search'); if(si) si.value='';
       fetchWeather(lat, lon);
       reverseGeocode(lat, lon).then(nama=>{
         document.getElementById('loc-name').textContent=nama;
