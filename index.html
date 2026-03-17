@@ -1100,6 +1100,92 @@ footer .footer-tagline {
   margin-bottom: 10px;
 }
 
+/* ── HEADER DATETIME ────────────────────── */
+.header-datetime {
+  margin-top: 10px;
+  position: relative; z-index: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,.92);
+  letter-spacing: .3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.header-datetime .hd-day {
+  color: rgba(255,255,255,.92);
+}
+.header-datetime .hd-sep {
+  color: rgba(255,255,255,.4);
+}
+.header-datetime .hd-date {
+  color: rgba(255,255,255,.85);
+}
+
+/* ── GRAFIK 24 JAM ──────────────────────── */
+.chart24-card {
+  background: #fff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 0;
+}
+.chart24-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--gray-100);
+  padding: 0 16px;
+}
+.chart24-tab {
+  flex: 1;
+  padding: 11px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-400);
+  text-align: center;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+}
+.chart24-tab.active {
+  color: var(--teal-600);
+  border-bottom-color: var(--teal-500);
+}
+.chart24-body {
+  padding: 14px 16px 12px;
+}
+.chart24-canvas-wrap {
+  position: relative;
+  height: 120px;
+  width: 100%;
+}
+canvas.chart24-canvas {
+  width: 100% !important;
+  height: 120px !important;
+  display: block;
+}
+.chart24-x-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 2px 0;
+  font-size: 10px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+.chart24-insight {
+  margin-top: 10px;
+  padding: 9px 12px;
+  background: var(--teal-50);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--teal-700);
+  line-height: 1.5;
+  font-weight: 500;
+  border-left: 3px solid var(--teal-400);
+}
+
 /* ── DARK MODE ──────────────────────────── */
 body.dark-mode {
   --cream:    #121212;
@@ -1122,7 +1208,17 @@ body.dark-mode .app-header {
 body.dark-mode .weather-hero,
 body.dark-mode .forecast-card,
 body.dark-mode .card { background: #1e1e1e; }
+body.dark-mode .weather-temp { color: #7de8df; }
+body.dark-mode .weather-desc-text { color: #e8e8e8; }
+body.dark-mode .stat-value { color: #ffffff; }
+body.dark-mode .stat-label { color: #bbb; }
 body.dark-mode .stat-item { background: #2a2a2a; }
+body.dark-mode .chart24-card { background: #1e1e1e; }
+body.dark-mode .chart24-tab { color: #888; }
+body.dark-mode .chart24-tab.active { color: var(--teal-400); border-bottom-color: var(--teal-400); }
+body.dark-mode .chart24-tabs { border-bottom-color: #333; }
+body.dark-mode .chart24-insight { background: #0f2422; color: #7de8df; border-left-color: var(--teal-600); }
+body.dark-mode .chart24-x-labels { color: #666; }
 body.dark-mode .bottom-nav { background: rgba(30,30,30,.96); border-top-color: #333; }
 body.dark-mode .search-results { background: #1e1e1e; }
 body.dark-mode .pupuk-group-header,
@@ -1228,6 +1324,7 @@ body.dark-mode .dim-badge             { background: #252525; border-color: var(-
     </button>
   </div>
 
+  <div class="header-datetime" id="header-datetime"></div>
   <div class="header-update">
     <span>📍 <span id="loc-name">Mendeteksi lokasi...</span></span>
     <span>·</span>
@@ -1271,6 +1368,23 @@ body.dark-mode .dim-badge             { background: #252525; border-color: var(-
       </div>
       <div id="season-section"></div>
       <div id="alert-section"></div>
+    </div>
+
+    <!-- Grafik 24 jam ke depan -->
+    <div class="section-label">📈 Grafik Cuaca 24 Jam ke Depan</div>
+    <div class="chart24-card">
+      <div class="chart24-tabs">
+        <div class="chart24-tab active" onclick="switchChart24('rain')" id="tab-rain">🌧 Curah Hujan</div>
+        <div class="chart24-tab" onclick="switchChart24('temp')" id="tab-temp">🌡 Suhu</div>
+        <div class="chart24-tab" onclick="switchChart24('wind')" id="tab-wind">💨 Angin</div>
+      </div>
+      <div class="chart24-body">
+        <div class="chart24-canvas-wrap">
+          <canvas class="chart24-canvas" id="chart24-canvas"></canvas>
+        </div>
+        <div class="chart24-x-labels" id="chart24-xlabels"></div>
+        <div class="chart24-insight" id="chart24-insight">Memuat data grafik...</div>
+      </div>
     </div>
 
     <!-- Prakiraan 7 hari -->
@@ -1964,6 +2078,8 @@ function renderAll(d){
   renderDasarian(d.daily);
   renderOPT(cur);
   renderMonthlyGrid(month);
+  // Grafik 24 jam
+  setTimeout(() => renderChart24(d.hourly), 100);
 }
 
 function wmoToInfo(c){
@@ -2183,7 +2299,344 @@ function renderDampak(daily){
 }
 
 
-// ── Data OPT — Sumber: Balittas Malang, Literatur OPT Jateng, Kajian Virologi ──
+// ── HEADER DATETIME ───────────────────────────────────────────────────────
+function renderHeaderDateTime() {
+  const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const now = new Date();
+  const hari = HARI[now.getDay()];
+  const tgl = now.getDate();
+  const bln = BULAN[now.getMonth()];
+  const thn = now.getFullYear();
+  const el = document.getElementById('header-datetime');
+  if (el) {
+    el.innerHTML = `<span class="hd-day">📅 ${hari}</span><span class="hd-sep">·</span><span class="hd-date">${tgl} ${bln} ${thn}</span>`;
+  }
+}
+renderHeaderDateTime();
+// Update tanggal tiap menit (untuk kasus aplikasi terbuka melewati tengah malam)
+setInterval(renderHeaderDateTime, 60000);
+
+// ── GRAFIK 24 JAM ─────────────────────────────────────────────────────────
+let _chart24Mode = 'rain';
+let _chart24Data = null;
+
+function switchChart24(mode) {
+  _chart24Mode = mode;
+  ['rain','temp','wind'].forEach(m => {
+    document.getElementById('tab-'+m).classList.toggle('active', m === mode);
+  });
+  // Reset style insight ke default sebelum render ulang
+  const el = document.getElementById('chart24-insight');
+  if (el) {
+    el.style.background = '';
+    el.style.borderColor = '';
+    el.style.color = '';
+  }
+  renderChart24(_chart24Data);
+}
+
+function getChart24Data(hourly) {
+  if (!hourly || !hourly.time) return null;
+  const now = new Date();
+  const result = { rain: [], temp: [], wind: [], labels: [] };
+  let count = 0;
+  for (let i = 0; i < hourly.time.length && count < 24; i++) {
+    const t = new Date(hourly.time[i]);
+    if (t < now) continue;
+    result.rain.push(hourly.precipitation_probability[i] || 0);
+    result.temp.push(Math.round(hourly.temperature_2m[i] * 10) / 10);
+    result.wind.push(Math.round(hourly.wind_speed_10m[i]));
+    // Label: setiap 6 jam tampilkan jam, sisanya kosong
+    const h = t.getHours();
+    result.labels.push(count % 6 === 0 ? String(h).padStart(2,'0')+'.00' : '');
+    count++;
+  }
+  return result;
+}
+
+function renderChart24(hourly) {
+  _chart24Data = hourly;
+  if (!hourly) return;
+  const data = getChart24Data(hourly);
+  if (!data || !data.rain.length) return;
+
+  const canvas = document.getElementById('chart24-canvas');
+  const ctx = canvas.getContext('2d');
+  const mode = _chart24Mode;
+  const values = data[mode];
+  const n = values.length;
+
+  // Dimensioni fisiche canvas
+  const W = canvas.offsetWidth || 320;
+  const H = 120;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const isDark = document.body.classList.contains('dark-mode');
+  const gridColor = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)';
+  const textColor = isDark ? '#666' : '#bbb';
+
+  // Colori per modo
+  const colors = {
+    rain: { line: '#4a8fbf', fill: 'rgba(74,143,191,.18)', dot: '#4a8fbf' },
+    temp: { line: '#e8a825', fill: 'rgba(232,168,37,.18)', dot: '#e8a825' },
+    wind: { line: '#4a7c3f', fill: 'rgba(74,124,63,.18)', dot: '#4a7c3f' },
+  };
+  const col = colors[mode];
+
+  const padL = 28, padR = 8, padT = 10, padB = 18;
+  const gW = W - padL - padR;
+  const gH = H - padT - padB;
+
+  const minV = mode === 'rain' ? 0 : Math.min(...values) - 2;
+  const maxV = mode === 'rain' ? 100 : Math.max(...values) + 2;
+  const range = maxV - minV || 1;
+
+  const xPos = i => padL + (i / (n - 1)) * gW;
+  const yPos = v => padT + gH - ((v - minV) / range) * gH;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid orizzontale (3 linee)
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(f => {
+    const y = padT + gH * (1 - f);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    // Label asse Y
+    const val = Math.round(minV + f * range);
+    ctx.fillStyle = textColor;
+    ctx.font = '9px Plus Jakarta Sans, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(val, padL - 3, y + 3);
+  });
+
+  // Area fill
+  ctx.beginPath();
+  ctx.moveTo(xPos(0), yPos(values[0]));
+  for (let i = 1; i < n; i++) {
+    const x0 = xPos(i - 1), y0 = yPos(values[i - 1]);
+    const x1 = xPos(i), y1 = yPos(values[i]);
+    const cpx = (x0 + x1) / 2;
+    ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1);
+  }
+  ctx.lineTo(xPos(n - 1), padT + gH);
+  ctx.lineTo(xPos(0), padT + gH);
+  ctx.closePath();
+  ctx.fillStyle = col.fill;
+  ctx.fill();
+
+  // Linea principale
+  ctx.beginPath();
+  ctx.moveTo(xPos(0), yPos(values[0]));
+  for (let i = 1; i < n; i++) {
+    const x0 = xPos(i - 1), y0 = yPos(values[i - 1]);
+    const x1 = xPos(i), y1 = yPos(values[i]);
+    const cpx = (x0 + x1) / 2;
+    ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1);
+  }
+  ctx.strokeStyle = col.line;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Dot per valori importanti (max e min)
+  const maxIdx = values.indexOf(Math.max(...values));
+  const minIdx = values.indexOf(Math.min(...values));
+  [maxIdx, minIdx].forEach(idx => {
+    ctx.beginPath();
+    ctx.arc(xPos(idx), yPos(values[idx]), 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = col.dot;
+    ctx.fill();
+    // Valore sopra/sotto il dot
+    const isMax = idx === maxIdx;
+    const label = mode === 'rain' ? values[idx]+'%' : mode === 'temp' ? values[idx]+'°' : values[idx]+' km/j';
+    ctx.fillStyle = isDark ? '#e0e0e0' : '#444';
+    ctx.font = 'bold 9px Plus Jakarta Sans, sans-serif';
+    ctx.textAlign = 'center';
+    const labelY = isMax ? yPos(values[idx]) - 6 : yPos(values[idx]) + 14;
+    ctx.fillText(label, xPos(idx), labelY);
+  });
+
+  // Label asse X
+  const xlabelsEl = document.getElementById('chart24-xlabels');
+  // Mostra solo le label non vuote con posizione CSS
+  const shown = data.labels.map((l, i) => ({ l, i })).filter(x => x.l);
+  xlabelsEl.innerHTML = '';
+  const wrapW = canvas.offsetWidth || 320;
+  shown.forEach(({ l, i }) => {
+    const span = document.createElement('span');
+    span.textContent = l;
+    span.style.cssText = `position:absolute;left:${((i/(n-1))*gW + padL)/wrapW*100}%;transform:translateX(-50%)`;
+    xlabelsEl.appendChild(span);
+  });
+  xlabelsEl.style.position = 'relative';
+  xlabelsEl.style.height = '14px';
+
+  // Insight otomatis
+  renderChart24Insight(values, mode, data.labels);
+}
+
+function renderChart24Insight(values, mode, labels) {
+  const el = document.getElementById('chart24-insight');
+  if (!el || !values.length) return;
+
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const maxIdx = values.indexOf(max);
+  const minIdx = values.indexOf(min);
+  const avg = Math.round(values.reduce((a,b) => a+b, 0) / values.length);
+  const month = new Date().getMonth() + 1; // 1–12
+
+  const now = new Date();
+  function jamKe(idx) {
+    const t = new Date(now);
+    t.setMinutes(0, 0, 0);
+    t.setHours(t.getHours() + 1 + idx);
+    return String(t.getHours()).padStart(2,'0') + '.00';
+  }
+
+  // ── Fase budidaya per bulan ──────────────────────────────────────────────
+  // 'darurat' = Agustus hujan → alert keras merah
+  // 'kritis'  = Mei–Juni hujan → peringatan kuning
+  // 'waspada' = Apr, Jul, Sep, Okt → peringatan ringan
+  // 'umum'    = Nov–Mar → info cuaca biasa
+  const FASE = {
+    1:  { label: 'Istirahat lahan',              level: 'umum'    },
+    2:  { label: 'Istirahat lahan',              level: 'umum'    },
+    3:  { label: 'Persiapan & rembug tani',      level: 'umum'    },
+    4:  { label: 'Pembibitan & olah lahan',      level: 'waspada' },
+    5:  { label: 'Tanam bibit (0–15 HST)',        level: 'kritis'  },
+    6:  { label: 'Pertumbuhan awal (15–30 HST)',  level: 'kritis'  },
+    7:  { label: 'Pemupukan II & topping',        level: 'waspada' },
+    8:  { label: 'Panen & penjemuran',            level: 'darurat' },
+    9:  { label: 'Penjemuran lanjut & penjualan', level: 'waspada' },
+    10: { label: 'Akhir panen & penjualan',       level: 'waspada' },
+    11: { label: 'Awal musim hujan',              level: 'umum'    },
+    12: { label: 'Musim hujan penuh',             level: 'umum'    },
+  };
+  const fase = FASE[month];
+  const level = fase.level;
+  const faseLabel = fase.label;
+
+  // ── Style insight berdasarkan level + kondisi ────────────────────────────
+  // Default: teal (normal)
+  let bgColor    = 'var(--teal-50)';
+  let borderColor= 'var(--teal-400)';
+  let textColor  = 'var(--teal-700)';
+  const isDark   = document.body.classList.contains('dark-mode');
+  if (isDark) { bgColor='#0f2422'; textColor='#7de8df'; borderColor='var(--teal-600)'; }
+
+  let txt = '';
+  let isAlert = false; // darurat = style merah
+
+  // ── RAIN ─────────────────────────────────────────────────────────────────
+  if (mode === 'rain') {
+    const highCount = values.filter(v => v >= 60).length;
+
+    if (level === 'darurat') {
+      // Agustus — panen & penjemuran
+      if (max >= 40) {
+        isAlert = true;
+        txt = `🚨 DARURAT — ${faseLabel}! Peluang hujan ${max}% sekitar pukul ${jamKe(maxIdx)} SANGAT BERBAHAYA bagi rajangan yang sedang dijemur. Segera angkat seluruh hamparan sekarang. Hujan saat penjemuran dapat merusak mutu tembakau secara permanen dan menurunkan harga jual drastis.`;
+      } else if (max >= 20) {
+        isAlert = true;
+        txt = `⚠️ WASPADA — ${faseLabel}. Peluang hujan ${max}% terdeteksi pukul ${jamKe(maxIdx)}. Pantau langit setiap jam — angkat hamparan lebih awal bila awan gelap mulai terlihat. Jangan ambil risiko saat penjemuran.`;
+      } else {
+        txt = `✅ Aman untuk penjemuran hari ini. Peluang hujan sangat rendah (maks. ${max}%). Manfaatkan cuaca cerah ini untuk mempercepat pengeringan rajangan.`;
+      }
+    } else if (level === 'kritis') {
+      // Mei–Juni — awal tanam 0–30 HST
+      if (max >= 60) {
+        txt = `⚠️ KRITIS — ${faseLabel}. Curah hujan tinggi (${max}% pukul ${jamKe(maxIdx)}) di fase 0–30 HST dapat menyebabkan busuk akar dan gagal tumbuh. ${highCount > 3 ? `Hujan diprediksi berlangsung ±${highCount} jam.` : ''} Periksa drainase bedengan segera — air menggenang adalah ancaman utama bibit muda.`;
+      } else if (max >= 30) {
+        txt = `🌦 ${faseLabel} — hujan ringan–sedang (${max}%) terdeteksi pukul ${jamKe(maxIdx)}. Pastikan saluran air di sekitar bedengan tidak tersumbat. Pupuk yang baru diaplikasikan berisiko terbawa aliran air.`;
+      } else {
+        txt = `✅ Kondisi cukup baik untuk ${faseLabel.toLowerCase()}. Peluang hujan rendah (${max}%), tetap pantau kelembaban tanah dan lakukan penyiraman ringan bila dibutuhkan.`;
+      }
+    } else if (level === 'waspada') {
+      // Apr, Jul, Sep, Okt
+      const konteks = {
+        4:  max >= 50 ? `Hujan deras saat pembibitan berisiko merusak bedengan persemaian dan menghanyutkan benih.` : `Hujan ringan bermanfaat untuk pelembaban bedengan sebelum tanam.`,
+        7:  max >= 50 ? `Waspadai kelembaban tinggi yang memacu pertumbuhan OPT (ulat, jamur) di fase pertumbuhan akhir.` : `Kondisi baik untuk pemupukan susulan — pastikan pupuk terserap sebelum hujan ringan.`,
+        9:  max >= 40 ? `⚠️ Hujan di September dapat menggagalkan penjemuran sisa hasil panen. Prioritaskan pengangkatan hamparan.` : `Hujan mulai meningkat — kejar penyelesaian penjemuran dan penjualan sebelum Oktober.`,
+        10: max >= 30 ? `Hujan makin sering di Oktober. Selesaikan penjualan segera sebelum musim hujan penuh.` : `Manfaatkan hari cerah terakhir untuk menyelesaikan penjemuran dan grading.`,
+      };
+      const keterangan = konteks[month] || `Pantau cuaca untuk aktivitas budidaya ${faseLabel.toLowerCase()}.`;
+      if (max < 20) {
+        txt = `☀️ ${faseLabel} — tidak ada potensi hujan signifikan (maks. ${max}%). ${keterangan}`;
+      } else {
+        txt = `🌦 ${faseLabel} — peluang hujan ${max}% sekitar pukul ${jamKe(maxIdx)}. ${keterangan}`;
+      }
+    } else {
+      // umum: Nov–Mar
+      const highRainCount = values.filter(v => v >= 60).length;
+      if (max < 20) {
+        txt = `☀️ Tidak ada potensi hujan signifikan dalam 24 jam ke depan. Langit cenderung cerah hingga berawan.`;
+      } else if (max < 60) {
+        txt = `🌦 Peluang hujan ringan tertinggi sekitar pukul ${jamKe(maxIdx)} (${max}%). Rata-rata peluang hujan: ${avg}%.`;
+      } else {
+        txt = `🌧 Potensi hujan cukup tinggi (${max}%) sekitar pukul ${jamKe(maxIdx)}. ${highRainCount > 3 ? `Hujan diprediksi berlangsung ±${highRainCount} jam berturut-turut.` : 'Siapkan payung jika keluar rumah.'}`;
+      }
+    }
+
+  // ── TEMP ─────────────────────────────────────────────────────────────────
+  } else if (mode === 'temp') {
+    const range = max - min;
+    let konteks = '';
+    if      (level === 'darurat' && max >= 35) konteks = 'Suhu tinggi ini justru ideal untuk penjemuran — manfaatkan sebaik mungkin.';
+    else if (level === 'darurat' && max < 30)  konteks = 'Suhu rendah memperlambat pengeringan rajangan — perpanjang waktu jemur atau gunakan sumber panas tambahan.';
+    else if (level === 'kritis'  && min < 22)  konteks = 'Suhu malam <22°C di fase awal tanam dapat memperlambat pertumbuhan bibit.';
+    else if (level === 'kritis'  && max > 35)  konteks = 'Suhu siang >35°C meningkatkan stres panas bibit muda — pastikan penyiraman pagi hari cukup.';
+    else if (level === 'waspada' && month === 7 && max > 36) konteks = 'Suhu >36°C di fase topping dapat memicu layu sementara — lakukan penyiraman sore ringan.';
+    else if (range > 10)                        konteks = 'Fluktuasi suhu cukup besar — perhatikan jadwal penyiraman dan penyemprotan.';
+    else                                         konteks = `Fase: ${faseLabel}.`;
+    txt = `🌡 Suhu tertinggi ${max}°C pukul ${jamKe(maxIdx)}, terendah ${min}°C pukul ${jamKe(minIdx)}. ${konteks}`;
+
+  // ── WIND ─────────────────────────────────────────────────────────────────
+  } else {
+    let konteks = '';
+    if      (level === 'darurat' && max > 20) konteks = 'Angin kencang saat penjemuran mempercepat pengeringan, namun bisa menerbangkan hamparan — pastikan pemberat terpasang.';
+    else if (level === 'darurat')             konteks = 'Kondisi angin baik untuk penjemuran hari ini.';
+    else if (level === 'kritis'  && max > 25) konteks = 'Angin kencang berisiko merobohkan bibit muda yang baru tanam — pasang patok atau peneduh sementara.';
+    else if (level === 'kritis'  && max > 15) konteks = 'Angin sedang di fase awal tanam — pantau kondisi bibit, tunda penyemprotan pestisida hingga angin mereda.';
+    else if (level === 'waspada' && month === 4 && max > 20) konteks = 'Angin kencang dapat merusak bedengan persemaian yang masih terbuka.';
+    else if (max > 30)                         konteks = 'Waspada kerusakan fisik tanaman — segera pasang peneduh atau tunda aktivitas lapang.';
+    else if (max > 15)                         konteks = 'Penyemprotan pestisida sebaiknya dilakukan saat angin di bawah 10 km/j untuk hasil optimal.';
+    else                                        konteks = 'Kondisi angin tenang — baik untuk penyemprotan dan perawatan tanaman.';
+
+    if (max > 30) {
+      txt = `💨 Angin cukup kencang, puncak ${max} km/j pukul ${jamKe(maxIdx)}. ${konteks}`;
+    } else if (max > 15) {
+      txt = `🍃 Angin sedang (maks. ${max} km/j pukul ${jamKe(maxIdx)}, rata-rata ${avg} km/j). ${konteks}`;
+    } else {
+      txt = `😌 Angin tenang (maks. ${max} km/j). ${konteks}`;
+    }
+  }
+
+  // ── Terapkan style ───────────────────────────────────────────────────────
+  if (isAlert) {
+    bgColor     = isDark ? '#2a0f0f' : '#fef2f2';
+    borderColor = '#dc2626';
+    textColor   = isDark ? '#fca5a5' : '#991b1b';
+  } else if (level === 'kritis' && (
+    (mode === 'rain' && max >= 30) ||
+    (mode === 'temp' && (max > 35 || min < 22)) ||
+    (mode === 'wind' && max > 25)
+  )) {
+    bgColor     = isDark ? '#2a1f00' : '#fffbeb';
+    borderColor = '#d97706';
+    textColor   = isDark ? '#fcd34d' : '#92400e';
+  }
+
+  el.style.background    = bgColor;
+  el.style.borderColor   = borderColor;
+  el.style.color         = textColor;
+  el.textContent         = txt;
+}
+
+
 const OPT_PANDUAN = [
   {
     id: 'ulat-grayak',
