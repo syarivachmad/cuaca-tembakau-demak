@@ -3381,13 +3381,13 @@ async function fetchCHSeptOkt(lat, lon){
     let statusClass, statusLabel, icon, instruksi;
     if(pct > 120){
       statusClass = 'lebih-basah'; statusLabel = 'Luwih Teles'; icon = '⚠️';
-      instruksi = 'Sept–Okt diprediksi luwih teles saka biasa. Kemarau enggal rampung. Petani sing telat nandur kudu waspada — udan bisa ganggu penjemuran lan nurunke kualitas godhong.';
+      instruksi = 'Kemarau enggal rampung. Petani sing telat nandur kudu waspada — udan bisa ganggu penjemuran lan nurunke kualitas godhong.';
     } else if(pct < 80){
       statusClass = 'lebih-kering'; statusLabel = 'Luwih Garing'; icon = '⭐';
-      instruksi = 'Sept–Okt diprediksi luwih garing saka biasa. Kemarau mundur. Petani sing telat nandur isih ana wektu kanggo panen sing apik — manfaatke iki kanthi optimal.';
+      instruksi = 'Kemarau mundur. Petani sing telat nandur isih ana wektu kanggo panen sing apik — manfaatke iki kanthi optimal.';
     } else {
       statusClass = 'normal'; statusLabel = 'Normal'; icon = '✅';
-      instruksi = 'Sept–Okt diprediksi normal sesuai biasane. Kemarau rampung sesuai jadwal. Petani telat nandur perlu enggal-enggal panen sadurunge Oktober akir supaya hasil ora rusak udan.';
+      instruksi = 'Kemarau rampung sesuai jadwal. Petani telat nandur perlu enggal-enggal panen sadurunge Oktober akir supaya hasil ora rusak udan.';
     }
 
     // Label sumber
